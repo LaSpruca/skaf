@@ -91,7 +91,7 @@ fn create_structure_type(
     let name = Lit::Str(LitStr::new(name, input.span()));
     let make_proxy = input.named.iter().map(|x| {
         let ident = &x.ident;
-        quote_spanned! {x.span()=>#ident: engine.make_value(object.get_field(stringify!(ident)).expect("Unreachable"))}
+        quote_spanned! {x.span()=>#ident: engine.make_value(object.get_field(stringify!(#ident)).expect("Unreachable"))}
     });
     let get_structure = input.named.iter().map(|x| {
         let ident = &x.ident;
@@ -146,11 +146,12 @@ fn create_proxy(struct_name: &Ident, input: &FieldsNamed) -> proc_macro2::TokenS
     let new_name = format_ident!("{}Proxy", struct_name);
 
     quote! {
+        #[allow(dead_code)]
         struct #new_name {
             #(#struct_fields),*
         }
 
-        impl ::skaf::StructureProxy for DeploymentProxy {
+        impl ::skaf::StructureProxy for #new_name {
             fn get(&self, path: &str, engine: &::skaf::Engine) -> ::core::option::Option<Box<dyn ::core::any::Any>> {
                 match path {
                     #(#proxy_attrs)*
