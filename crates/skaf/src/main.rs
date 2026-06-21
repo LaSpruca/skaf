@@ -3,7 +3,7 @@ use std::any::TypeId;
 use skaf::engine::{
     Engine, Function,
     proxy::Proxy,
-    structure::{Structure, StructureType, StrutureProxy},
+    structure::{Structure, StructureProxy, StructureType},
 };
 
 #[derive(Clone, Debug)]
@@ -17,7 +17,7 @@ struct DeploymentProxy {
     namespace: Proxy<String>,
 }
 
-impl StrutureProxy for DeploymentProxy {
+impl StructureProxy for DeploymentProxy {
     fn get(&self, path: &str, engine: &Engine) -> Option<Box<dyn std::any::Any>> {
         match path {
             "name" => Some(Box::new(self.name.get_value(engine))),
@@ -66,7 +66,7 @@ struct NamespaceProxy {
     name: Proxy<String>,
 }
 
-impl StrutureProxy for NamespaceProxy {
+impl StructureProxy for NamespaceProxy {
     fn get(&self, path: &str, engine: &Engine) -> Option<Box<dyn std::any::Any>> {
         match path {
             "name" => Some(Box::new(self.name.get_value(engine))),
@@ -80,7 +80,7 @@ impl StructureType for Namespace {
 
     fn make_proxy(object: skaf::parser::Object, engine: &Engine) -> Self::ProxyType {
         Self::ProxyType {
-            name: engine.make_value_string(object.get_field("name").expect("Unreachable")),
+            name: engine.make_value(object.get_field("name").expect("Unreachable")),
         }
     }
 
@@ -99,7 +99,7 @@ impl StructureType for Namespace {
     }
 }
 
-const SRC: &str = include_str!("../test.skaf");
+const SRC: &str = include_str!("../../../test.skaf");
 
 #[allow(non_camel_case_types)]
 struct upperise {}

@@ -46,7 +46,7 @@ impl Structure {
 
 pub trait StructureType
 where
-    Self::ProxyType: StrutureProxy + 'static,
+    Self::ProxyType: StructureProxy + 'static,
 {
     type ProxyType;
 
@@ -56,6 +56,6 @@ where
     fn make(proxy: &Self::ProxyType, engine: &Engine) -> Self;
 }
 
-pub trait StrutureProxy: Any {
+pub trait StructureProxy: Any {
     fn get(&self, path: &str, engine: &Engine) -> Option<Box<dyn Any>>;
 }

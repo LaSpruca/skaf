@@ -1,7 +1,7 @@
 use crate::{
     engine::{
         proxy::{Proxy, ProxyValue},
-        structure::{Structure, StructureType, StrutureProxy},
+        structure::{Structure, StructureProxy, StructureType},
     },
     parser::{Identifier, Object, Value, lex::Lexer, parse},
 };
@@ -17,7 +17,7 @@ pub mod structure;
 pub struct EngineBuilder {
     functions: HashMap<String, Box<dyn Function>>,
     structures: HashMap<String, Structure>,
-    create_proxies: HashMap<String, Box<dyn Fn(Object, &Engine) -> Box<dyn StrutureProxy>>>,
+    create_proxies: HashMap<String, Box<dyn Fn(Object, &Engine) -> Box<dyn StructureProxy>>>,
 }
 
 impl EngineBuilder {
@@ -56,8 +56,8 @@ impl EngineBuilder {
 pub struct Engine {
     functions: HashMap<String, Box<dyn Function>>,
     structures: HashMap<String, Structure>,
-    create_proxies: HashMap<String, Box<dyn Fn(Object, &Engine) -> Box<dyn StrutureProxy>>>,
-    objects: HashMap<Identifier, Box<dyn StrutureProxy>>,
+    create_proxies: HashMap<String, Box<dyn Fn(Object, &Engine) -> Box<dyn StructureProxy>>>,
+    objects: HashMap<Identifier, Box<dyn StructureProxy>>,
 }
 
 impl Debug for Engine {
@@ -115,6 +115,28 @@ impl Engine {
         self.functions[function].call(self, args)
     }
 
+    pub fn make_value<T>(&self, value: &Value) -> Proxy<T>
+    where
+        T: Clone + 'static,
+    {
+        if TypeId::of::<T>() == TypeId::of::<String>() {
+            let proxy_string = self.make_value_string(value);
+
+            // 1. Take ownership and move it onto the stack/heap via a pointer
+            let ptr = &proxy_string as *const Proxy<String> as *const Proxy<T>;
+
+            // 2. Tell the compiler to forget the original String version so it doesn't drop it
+            std::mem::forget(proxy_string);
+
+            // 3. SAFETY: We confirmed T == String, and we are reading a valid pointer
+            unsafe {
+                return ptr.read();
+            }
+        } else {
+            return self.make_value_call_query(value);
+        }
+    }
+
     pub fn make_value_string(&self, value: &Value) -> Proxy<String> {
         match value.value {
             crate::parser::ValueVariant::String(ref v) => Proxy {
@@ -123,12 +145,12 @@ impl Engine {
                 value: ProxyValue::Value(v.clone()),
             },
             crate::parser::ValueVariant::Invoke(_, _) | crate::parser::ValueVariant::Query(_) => {
-                self.make_value::<String>(value)
+                self.make_value_call_query::<String>(value)
             }
         }
     }
 
-    pub fn make_value<T>(&self, value: &Value) -> Proxy<T>
+    pub fn make_value_call_query<T>(&self, value: &Value) -> Proxy<T>
     where
         T: Clone + 'static,
     {
