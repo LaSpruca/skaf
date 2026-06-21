@@ -101,6 +101,7 @@ impl StructureType for Namespace {
 
 const SRC: &str = include_str!("../test.skaf");
 
+#[allow(non_camel_case_types)]
 struct upperise {}
 impl upperise {
     pub fn function(value: String) -> String {
