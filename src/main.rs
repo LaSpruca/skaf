@@ -46,7 +46,10 @@ impl StructureType for Deployment {
     }
 
     fn make(proxy: &Self::ProxyType, engine: &Engine) -> Self {
-        todo!()
+        Self {
+            name: proxy.name.get_value(engine),
+            namespace: proxy.namespace.get_value(engine),
+        }
     }
 }
 

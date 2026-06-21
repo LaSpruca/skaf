@@ -88,19 +88,9 @@ impl Engine {
             value: object.to_string(),
         })?;
 
-        if proxy.as_ref().type_id() != TypeId::of::<T::ProxyType>() {
-            println!(
-                "type missmatch {:?} {:?}, {:?}",
-                TypeId::of::<Box<dyn StrutureProxy>>(),
-                proxy.as_ref().type_id(),
-                TypeId::of::<T::ProxyType>()
-            );
-            return None;
-        }
+        let k: &dyn Any = proxy.as_ref() as &dyn Any;
 
-        // SAFTEY: The above check makes sure that we can downcast to this type
-        let ptr = unsafe { &*(proxy as *const dyn Any as *const T::ProxyType) };
-        Some(T::make(ptr, self))
+        Some(T::make(k.downcast_ref::<T::ProxyType>()?, self))
     }
 
     pub fn query(&self, path: &[String]) -> Box<dyn Any> {
