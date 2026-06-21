@@ -50,6 +50,7 @@ where
 {
     type ProxyType;
 
+    fn tag() -> &'static str;
     fn make_proxy(object: Object, engine: &Engine) -> Self::ProxyType;
     fn get_structure() -> Structure;
     fn make(proxy: &Self::ProxyType, engine: &Engine) -> Self;

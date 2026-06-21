@@ -29,15 +29,15 @@ impl EngineBuilder {
         }
     }
 
-    pub fn function(mut self, name: impl Into<String>, function: impl Function + 'static) -> Self {
-        self.functions.insert(name.into(), Box::from(function));
+    pub fn function<T: Function + 'static>(mut self, function: T) -> Self {
+        self.functions.insert(T::name().into(), Box::from(function));
         self
     }
 
-    pub fn structure<T: StructureType>(mut self, tag: impl ToString) -> Self {
-        self.structures.insert(tag.to_string(), T::get_structure());
+    pub fn structure<T: StructureType>(mut self) -> Self {
+        self.structures.insert(T::tag().into(), T::get_structure());
         self.create_proxies.insert(
-            tag.to_string(),
+            T::tag().into(),
             Box::new(|object, engine| Box::new(T::make_proxy(object, engine))),
         );
         self
@@ -306,6 +306,10 @@ impl Engine {
 }
 
 pub trait Function {
+    fn name() -> &'static str
+    where
+        Self: Sized;
+
     fn sig(&self) -> (Vec<TypeId>, TypeId);
     fn call(&self, engine: &Engine, args: &Vec<Proxy<Box<dyn Any>>>) -> Box<dyn Any>;
     fn make_args(&self, values: &Vec<Value>, engine: &Engine) -> Vec<Proxy<Box<dyn Any>>>;

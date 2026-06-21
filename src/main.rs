@@ -1,4 +1,4 @@
-use std::any::{Any, TypeId};
+use std::any::TypeId;
 
 use skaf::engine::{
     Engine, Function,
@@ -51,6 +51,10 @@ impl StructureType for Deployment {
             namespace: proxy.namespace.get_value(engine),
         }
     }
+
+    fn tag() -> &'static str {
+        return "v1.deployment";
+    }
 }
 
 #[derive(Clone, Debug)]
@@ -89,18 +93,29 @@ impl StructureType for Namespace {
             name: proxy.name.get_value(engine),
         }
     }
+
+    fn tag() -> &'static str {
+        "namespace"
+    }
 }
 
-const SRC: &str = include_str!("../test.scaf");
+const SRC: &str = include_str!("../test.skaf");
 
-struct upperize {}
-impl upperize {
+struct upperise {}
+impl upperise {
     pub fn function(value: String) -> String {
         value.to_uppercase()
     }
 }
 
-impl Function for upperize {
+impl Function for upperise {
+    fn name() -> &'static str
+    where
+        Self: Sized,
+    {
+        "upperise"
+    }
+
     fn sig(&self) -> (Vec<TypeId>, TypeId) {
         return (
             vec![std::any::TypeId::of::<String>()],
@@ -143,9 +158,9 @@ fn main() {
     // println!("Parsed =========================\n{parsed:#?}");
 
     let mut engine = Engine::builder()
-        .function("upperise", upperize {})
-        .structure::<Namespace>("namespace")
-        .structure::<Deployment>("v1.deployment")
+        .function(upperise {})
+        .structure::<Namespace>()
+        .structure::<Deployment>()
         .build();
 
     println!("Engine =========================");
