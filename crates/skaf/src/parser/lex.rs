@@ -75,7 +75,7 @@ impl<'a> Lexer<'a> {
             self.col += 1;
         }
 
-        return Some((idx, next));
+        Some((idx, next))
     }
 
     /// returns the index of the last character matching this pattern

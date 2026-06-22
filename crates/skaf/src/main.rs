@@ -36,10 +36,10 @@ impl Function for upperise {
     }
 
     fn sig(&self) -> (Vec<TypeId>, TypeId) {
-        return (
+        (
             vec![std::any::TypeId::of::<String>()],
             std::any::TypeId::of::<String>(),
-        );
+        )
     }
 
     fn call(
@@ -58,7 +58,7 @@ impl Function for upperise {
         engine: &Engine,
     ) -> Vec<Proxy<Box<dyn std::any::Any>>> {
         assert_eq!(values.len(), 1, "Should have 1 arg");
-        return vec![engine.make_value_string(&values[0]).to_any()];
+        vec![engine.make_value_string(&values[0]).to_any()]
     }
 }
 

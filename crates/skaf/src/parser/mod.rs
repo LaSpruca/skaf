@@ -268,5 +268,5 @@ pub fn parse(tokens: Lexer) -> Vec<Object> {
         break;
     }
 
-    return objects;
+    objects
 }

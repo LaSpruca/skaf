@@ -198,12 +198,12 @@ pub fn function(_attr: TokenStream, token_stream: TokenStream) -> TokenStream {
         });
 
     let mut next = 0;
-    let invoke_args = args.iter().filter_map(|elm| match elm {
-        syn::FnArg::Receiver(_) => Some(quote! {self}),
+    let invoke_args = args.iter().map(|elm| match elm {
+        syn::FnArg::Receiver(_) => quote! {self},
         syn::FnArg::Typed(pat_type) => {
             let name = format_ident!("arg_{next}");
             next += 1;
-            Some(quote_spanned! {pat_type.span()=>#name})
+            quote_spanned! {pat_type.span()=>#name}
         }
     });
     let make_args = args

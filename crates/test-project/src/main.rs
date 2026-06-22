@@ -1,6 +1,5 @@
 use skaf::{Engine, StructureType, function};
 
-// #[derive(Debug)]
 #[derive(Debug, StructureType)]
 #[skaf(name = "v1.deployment")]
 struct Deployment {
