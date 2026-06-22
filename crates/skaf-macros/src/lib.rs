@@ -1,8 +1,8 @@
 use proc_macro::TokenStream;
 use quote::{format_ident, quote, quote_spanned};
 use syn::{
-    Data, DataStruct, DeriveInput, Expr, ExprAssign, ExprLit, Fields, FieldsNamed, Ident, Lit,
-    LitStr, Token, punctuated::Punctuated, spanned::Spanned,
+    Data, DataStruct, DeriveInput, Expr, ExprAssign, ExprLit, Fields, FieldsNamed, Ident, ItemFn,
+    Lit, LitStr, Token, punctuated::Punctuated, spanned::Spanned,
 };
 
 #[proc_macro_derive(StructureType, attributes(skaf))]
@@ -160,4 +160,100 @@ fn create_proxy(struct_name: &Ident, input: &FieldsNamed) -> proc_macro2::TokenS
             }
         }
     }
+}
+
+#[proc_macro_attribute]
+pub fn function(_attr: TokenStream, token_stream: TokenStream) -> TokenStream {
+    let fun = syn::parse_macro_input!(token_stream as ItemFn);
+    let name = &fun.sig.ident;
+    let vis = &fun.vis;
+
+    let args = &fun.sig.inputs;
+    let output = &fun.sig.output;
+    let body = &fun.block.stmts;
+
+    let sig_return = match output {
+        syn::ReturnType::Default => quote! { ::core::any::TypeId::of::<()>() },
+        syn::ReturnType::Type(_, rtype) => quote! { ::core::any::TypeId::of::<#rtype>() },
+    };
+
+    let sig_args = args.iter().filter_map(|elm| match elm {
+        syn::FnArg::Receiver(_) => None,
+        syn::FnArg::Typed(pat_type) => {
+            let ty = &pat_type.ty;
+            Some(quote_spanned! {pat_type.span()=>::core::any::TypeId::of::<#ty>()})
+        }
+    });
+    let call_args = args
+        .iter()
+        .filter_map(|elm| match elm {
+            syn::FnArg::Receiver(_) => None,
+            syn::FnArg::Typed(pat_type) => Some(pat_type),
+        })
+        .enumerate()
+        .map(|(i, pat_type)| {
+            let name = format_ident!("arg_{i}");
+            let ty = &pat_type.ty;
+            Some(quote_spanned! {pat_type.span()=>let #name: #ty = args[#i].get_value_as(engine);})
+        });
+
+    let mut next = 0;
+    let invoke_args = args.iter().filter_map(|elm| match elm {
+        syn::FnArg::Receiver(_) => Some(quote! {self}),
+        syn::FnArg::Typed(pat_type) => {
+            let name = format_ident!("arg_{next}");
+            next += 1;
+            Some(quote_spanned! {pat_type.span()=>#name})
+        }
+    });
+    let make_args = args
+        .iter()
+        .filter_map(|elm| match elm {
+            syn::FnArg::Receiver(_) => None,
+            syn::FnArg::Typed(pat_type) => Some(pat_type),
+        })
+        .enumerate()
+        .map(|(i, pat_type)| {
+            let ty = &pat_type.ty;
+            Some(quote_spanned! {pat_type.span()=>engine.make_value::<#ty>(&values[#i]).to_any()})
+        });
+
+    quote_spanned! {fun.span() =>
+        #[allow(non_camel_case_types)]
+        #vis struct #name;
+        #[allow(non_camel_case_types, dead_code, redundant_semicolons)]
+        impl #name {
+            fn call(#args) #output {
+                #(#body)*
+            }
+        }
+        #[allow(non_camel_case_types, dead_code, redundant_semicolons)]
+        impl ::skaf::Function for #name {
+            fn name() -> &'static str
+            where
+                Self: Sized
+            {
+                stringify!(#name)
+            }
+
+            fn sig(&self) -> (Vec<::core::any::TypeId>, ::core::any::TypeId) {
+                (vec![#(#sig_args),*], #sig_return)
+            }
+
+            fn call(&self, engine: &::skaf::Engine, args: &::std::vec::Vec<::skaf::Proxy<Box<dyn ::core::any::Any>>>) -> Box<dyn ::core::any::Any> {
+                #(#call_args)*;
+                Box::new(Self::call(#(#invoke_args),*))
+            }
+
+            fn make_args(
+                &self,
+                values: &::std::vec::Vec<skaf::parser::Value>,
+                engine: &::skaf::Engine
+            ) -> ::std::vec::Vec<::skaf::Proxy<Box<dyn ::core::any::Any>>>
+            {
+                vec![#(#make_args),*]
+            }
+        }
+    }
+    .into()
 }

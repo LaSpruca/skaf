@@ -1,0 +1,16 @@
+namespace default-namespace {
+    name: "default"
+}
+
+namespace edgelink-namespace {
+    name: "edgelink"
+}
+
+namespace other-thing {
+    name: .upperise ?edge-link-deployment.name
+}
+
+{v1.deployment} edge-link-deployment {
+    namespace: ?edgelink-namespace.name
+    name: "eld"
+}
